@@ -1,5 +1,111 @@
 # 同行评审报告
 
+## Comments to the Author
+
+This paper proposes a graph convolutional network with a novel 4D point-cloud feature representation for few-shot compound fault diagnosis in metro bogie bearings. The idea of mapping raw vibration signals into a four-dimensional point cloud (time, frequency, scale, energy) via multi-scale Mel spectral transformation and processing them with a dynamic graph convolutional network (DGCNN) augmented by Squeeze-and-Excitation (SE) attention is interesting and potentially valuable. However, several critical issues regarding experimental validity, problem formulation, and completeness must be addressed before the paper can be considered for publication. My detailed comments are organized below.
+
+---
+
+### Critical Issues (Must Be Addressed)
+
+**1. Risk of Data Leakage Due to Overlapping Sliding Windows**
+
+This is the most critical concern. In Section IV-A-1, the authors state that "the length of each sample is 2048 points, with a sliding step of 512 points," resulting in 75% overlap between consecutive samples. However, the paper does not clarify whether the training/testing partition was performed **before** the sliding-window segmentation (i.e., at the raw signal level) or **after** it (i.e., at the sample level).
+
+If the split was performed after windowing, adjacent samples sharing up to 75% of their raw signal content could appear in both the training and testing sets, leading to severe data leakage. Under such conditions, the reported accuracy figures (e.g., 93.13% on Task 3) would be significantly inflated and unreliable. This issue undermines the validity of **all** experimental conclusions presented in the paper.
+
+**The authors must:**
+- (a) Explicitly describe the data partitioning strategy and confirm that training and testing samples originate from non-overlapping segments of the raw signal.
+- (b) If the current split does not guarantee leakage-free partitioning, re-run all experiments with a proper signal-level split and report updated results.
+
+**2. Misleading Use of "Few-Shot Learning"**
+
+The term "few-shot" in the title and throughout the paper is misleading. In the machine learning community, few-shot learning has a well-established technical meaning, typically referring to N-way K-shot episodic training protocols (e.g., Prototypical Networks, MAML), where **all** classes have very few labeled samples.
+
+In contrast, the experimental setup in this paper uses 900 training samples per class for 5 base classes (normal + 4 single faults) and only 18 or 36 samples per class for compound faults. This is more accurately characterized as **extreme class imbalance** rather than few-shot learning. The standard batch training procedure used in the paper further deviates from typical few-shot protocols.
+
+**The authors should:**
+- (a) Either reframe the problem as "compound fault diagnosis under extreme class imbalance" or adopt a genuine few-shot learning protocol with episodic training.
+- (b) If retaining the "few-shot" framing, include comparisons with established few-shot learning methods (e.g., Prototypical Networks, Matching Networks, MAML) to justify the claim.
+- (c) Revise the title and abstract to accurately reflect the actual experimental setting.
+
+**3. Absence of Statistical Significance Analysis**
+
+The paper states that "all experimental results reported are the averages obtained from multiple independent repetitions," but fails to report standard deviations, confidence intervals, or the number of repetitions. Given the extreme sample imbalance (900 vs. 18 per class), the training process is likely highly sensitive to random seed selection and sample composition.
+
+**The authors must** report the mean ± standard deviation for all metrics across all tasks and perform statistical significance tests (e.g., paired t-tests or Wilcoxon signed-rank tests) when comparing with baseline methods.
+
+---
+
+### Major Issues
+
+**4. Lack of Theoretical Justification for the 4D Point-Cloud Representation**
+
+The paper repeatedly emphasizes the limitations of 1D/2D representations and the superiority of the proposed 4D point cloud, but provides no rigorous theoretical analysis to support this claim. Section III-C merely describes how the point cloud is constructed without explaining **why** this representation is fundamentally superior to conventional 2D time-frequency representations (e.g., CWT scalograms, STFT spectrograms) in terms of information preservation or feature separability.
+
+Additionally, the "scale" dimension introduced by different analysis window lengths essentially represents a time-frequency resolution trade-off. Treating it as an independent physical dimension parallel to time and frequency may introduce substantial inter-scale redundancy. The authors should:
+- (a) Provide theoretical analysis or information-theoretic metrics (e.g., mutual information) to quantify the additional information captured by the 4D representation compared to 2D alternatives.
+- (b) Discuss the potential impact of inter-scale redundancy and conduct experiments with different scale combinations.
+
+**5. Missing Computational Complexity Analysis**
+
+Transforming 1D signals into 4D point clouds and then processing them with graph convolutions inevitably incurs substantial computational overhead. However, the paper provides no analysis of training time, inference time, model parameter count, or FLOPs. For a method targeting practical metro maintenance scenarios, computational efficiency is a critical consideration.
+
+**The authors should** add a table comparing computational costs (training time, inference time, parameter count) across all methods evaluated.
+
+**6. Incomplete Hyperparameter Specification and Sensitivity Analysis**
+
+Several critical hyperparameters are neither specified nor analyzed:
+- The balancing coefficients λ₁ and λ₂ in the hybrid metric center loss (Eq. 12) are not given specific values.
+- The neighborhood size *k* in k-NN for DGCNN graph construction is not stated.
+- The specific window scales used in the multi-scale Mel transformation and the number of Mel filters *M* are not clearly reported.
+
+**The authors should** (a) report all hyperparameter values used in the experiments and (b) include sensitivity analyses for at least λ₁, λ₂, and *k*.
+
+**7. Absence of Graph-Based or Point-Cloud-Based Comparison Methods**
+
+The five comparison methods (ML-DRL, MixMamba, AET, SAFE-Multilevel, TL-Attention) cover various technical approaches but do not include any graph-network-based or point-cloud-based fault diagnosis method. Since the core innovation lies in the 4D point-cloud + GCN framework, comparing with similar architectural paradigms (e.g., PointNet/PointNet++ applied to vibration data, or other GCN-based diagnosis methods) would more convincingly demonstrate the value of the proposed approach.
+
+---
+
+### Minor Issues
+
+**8. Single Operating Condition Validation**
+
+All experiments are conducted under a single fixed operating condition (motor speed 60 Hz, 10 kN lateral load, 10 kN vertical load). This prevents any assessment of robustness under variable-speed or variable-load conditions, which are common in real metro operations. If the dataset supports it, cross-condition experiments should be included. At minimum, this limitation should be explicitly discussed.
+
+**9. Laboratory Data vs. Real-World Applicability**
+
+While the BJTU-RAO dataset originates from a metro bogie test bench (1:2 scale), there is a significant gap between controlled laboratory conditions and real operating environments involving variable speeds, loads, noise, and track irregularities. The paper should include a candid discussion of this gap and the potential domain-shift challenges.
+
+**10. Lack of a Discussion Section**
+
+The paper transitions directly from experimental results to the conclusion without a dedicated Discussion section. Several experimental observations warrant deeper analysis:
+- Why do OR&RE and OR&C exhibit notably lower recall (83.67% and 88.00%) compared to other compound faults?
+- What physical mechanism underlies the feature masking among OR, RE, and C components?
+- Under which fault patterns does the 4D representation provide the most significant advantage?
+
+A Discussion section addressing these questions would significantly strengthen the paper.
+
+**11. Overly Brief Conclusion**
+
+The conclusion summarizes the method in a single paragraph without discussing limitations or outlining specific future research directions. It should be expanded to include: (a) explicit acknowledgment of limitations (laboratory data, single operating condition, computational overhead); (b) concrete future directions (cross-condition generalization, real-world deployment, online diagnosis).
+
+**12. Insufficient Description of the Overall Framework**
+
+The textual description accompanying Fig. 1 (Section III-A) is too brief. The authors should clearly state the data dimensionality at each processing stage (e.g., input signal length → number of point-cloud points → feature dimensions at each network layer → output classification dimensions) to help readers understand the complete data flow.
+
+---
+
+### Summary
+
+The paper addresses a practically relevant problem and proposes an interesting technical approach. The combination of 4D point-cloud representation with graph convolutional networks for compound fault diagnosis is novel in this application domain. However, the critical concern of potential data leakage due to overlapping sliding windows must be resolved before the experimental conclusions can be trusted. The "few-shot" framing needs to be either corrected or properly justified. Additionally, the paper requires statistical rigor, computational analysis, hyperparameter specification, and a more thorough discussion of limitations.
+
+**Recommendation: Major Revision.** The paper has potential merit but requires substantial revisions to establish the validity and reliability of its experimental conclusions.
+
+---
+---
+
 ## 论文信息
 
 - **标题**: A Graph Convolutional Network with Novel High-Dimensional Feature Representation for Few-Shot Compound Fault Diagnosis in Metro Bogie Bearings
