@@ -128,3 +128,117 @@
 6. 扩展对比实验，纳入基于图网络或点云处理的故障诊断方法。
 
 如果作者能够充分解决上述问题，本文有望成为轴承复合故障诊断领域的一篇高质量贡献。
+
+---
+
+## 六、结构化评审问卷回答
+
+### 基本技术评价
+
+**1. Is the paper technically sound? If no, why not?**
+
+> **Yes**（基本技术可靠）
+>
+> 论文的技术框架整体上是合理的。多尺度Mel频谱变换、DGCNN中的EdgeConv运算、SE注意力机制以及混合度量中心损失的数学推导均正确，各模块之间的组合逻辑连贯。实验设计涵盖了多任务对比和消融研究，结果支持论文的核心论点。不过需要指出的是，虽然技术路线本身可靠，但在理论论证的深度上仍有提升空间——例如4D点云表示相比2D时频表示的信息论优势缺乏严格证明，"小样本学习"的问题界定更接近"极端类不平衡"而非经典few-shot范式。这些不影响技术的正确性，但影响论证的严谨性。
+
+**2. Is the coverage of the topic sufficiently comprehensive and balanced?**
+
+> **Important information is missing or superficially treated.**
+>
+> 论文在以下方面的覆盖不够充分：（a）缺少计算复杂度分析和推理效率讨论，这对于面向实际地铁运维的应用至关重要；（b）关键超参数（λ₁、λ₂、k-NN的k值）的取值依据和敏感性分析完全缺失；（c）实验结果未报告标准差或置信区间；（d）对比方法中未包含任何基于图网络或点云的故障诊断方法，无法充分凸显核心创新的价值；（e）结论部分过于简略，未讨论方法局限性和未来方向。此外，论文缺少独立的Discussion部分，对部分实验现象（如OR&RE和OR&C的低recall）未进行深入的物理机理解释。
+
+**3. How would you describe the technical depth of the paper?**
+
+> **Appropriate for the generally knowledgeable individual working in the field or a related field.**
+>
+> 论文涉及的技术内容（Mel频谱变换、DGCNN、SE注意力、度量学习损失函数）对于故障诊断或深度学习领域的从业者来说处于适中的深度。数学推导清晰但不过分复杂，实验方法标准化且易于理解。对于领域内的一般研究者而言，论文的技术深度是适当的。
+
+**4. How would you rate the technical novelty of the paper?**
+
+> **Somewhat novel**
+>
+> 论文的主要新颖性在于将振动信号转化为4D点云表示并应用图卷积网络进行复合故障诊断，这一组合在地铁转向架轴承故障诊断领域是新颖的。然而，各个组成模块（Mel频谱变换、DGCNN/EdgeConv、SE注意力、中心损失）均为已有的成熟技术，论文的创新更多体现在组合方式和应用场景上，而非基础方法论的突破。混合度量中心损失将欧氏距离和余弦相似度结合，虽然有一定创新性，但本质上是对已有度量学习方法的增量改进。
+
+---
+
+### A. 主题适宜性（Suitability of Topic）
+
+**A.1. Is the topic appropriate for publication in these transactions?**
+
+> **Yes**
+>
+> 本文研究的核心是传感器信号（振动加速度信号）的智能处理与故障诊断，涉及传感器数据表示、特征提取和模式识别，完全符合IEEE Sensors Journal的范围。论文使用的BJTU-RAO数据集来源于振动加速度传感器，信号处理和智能诊断是传感器领域的重要应用方向。
+
+**A.2. Is the topic important to colleagues working in the field?**
+
+> **Yes**
+>
+> 地铁转向架轴承的复合故障诊断是城市轨道交通安全运营的关键问题。小样本条件下的精确诊断具有重要的工程实际需求。此外，论文提出的高维数据表示和图卷积特征学习方法对整个机械故障诊断领域的研究者都具有参考价值。
+
+---
+
+### C. 展示质量（Presentation）
+
+**C.1. How would you rate the overall organization of the paper?**
+
+> **Could be improved**
+>
+> 论文整体遵循标准的IEEE论文结构（引言→相关工作→方法→实验→结论），主体框架清晰。但存在以下组织问题：（a）缺少独立的Discussion部分，实验结果分析直接跳至结论；（b）结论部分过于简短，未讨论方法局限性和未来方向；（c）总体技术框架图（Fig. 1）的配套文字描述不够详尽，未明确各处理阶段的数据维度变化。
+
+**C.2. Are the title and abstract satisfactory?**
+
+> **Yes**
+>
+> 标题准确地概括了论文的核心内容——图卷积网络、高维特征表示、小样本、复合故障诊断、地铁转向架轴承。摘要内容完整，涵盖了研究问题、技术方案（4D点云、DGCNN+SE、混合度量损失）和主要结论，能够有效引导读者理解全文。
+
+**C.3. Is the length of the paper appropriate?**
+
+> **Yes**
+>
+> 论文正文约11页，对于提出包含数据表示、网络架构和损失函数三个技术贡献的方法论文来说，篇幅基本适当。如果作者按照评审建议增加Discussion部分、计算复杂度分析和超参数敏感性分析，可能需要适度扩展，但仍可控制在合理范围内。
+
+**C.4. Are symbols, terms, and concepts adequately defined?**
+
+> **Not always**
+>
+> 大部分数学符号和概念有明确定义，但存在以下不足：（a）混合度量中心损失（公式12）中的平衡系数λ₁和λ₂未给出具体取值；（b）DGCNN中k-NN的k值未在正文中明确说明；（c）多尺度变换中具体使用了哪些窗口尺度、Mel滤波器组的数量M等关键实验参数未充分交代；（d）加权交叉熵中类别权重的具体计算虽给出了公式，但在不平衡比例极端（900 vs 18）的条件下，权重的数值范围和效果缺乏讨论。
+
+**C.5. How do you rate the English usage?**
+
+> **Satisfactory**
+>
+> 论文的英文写作整体流畅，语法正确，专业术语使用准确。句式结构清晰，逻辑连接词使用恰当。偶尔存在轻微的表述冗余（如多处重复强调"low-dimensional"的不足），但不影响理解。
+
+**C.6. Rate the Bibliography?**
+
+> **Satisfactory**
+>
+> 参考文献共37篇，涵盖了地铁转向架故障诊断、深度学习故障诊断、图卷积网络和度量学习等关键领域。引文时间分布合理，包含了较多近年（2022-2025）的文献，体现了对领域前沿的关注。DGCNN [30]和SE-Net [31]等核心基础方法的引用准确。不过，可以考虑补充少量关于点云深度学习（如PointNet系列在工业领域的应用）和经典few-shot learning方法的参考文献。
+
+---
+
+### D. 总体评价（Overall Rating）
+
+**D.1. How would you rate the technical contents of the paper?**
+
+> **Good**
+>
+> 论文的技术内容总体上是扎实的。4D点云表示的构建方法清晰，DGCNN+SE的网络架构设计合理，混合度量中心损失的提出具有针对性。实验在6个诊断任务上验证了方法的有效性，消融实验和可视化分析增强了论证力。主要扣分点在于：缺乏理论深度（为何4D优于2D的信息论论证）、统计严谨性（无标准差报告）和完整性（无计算复杂度和超参数分析）。这些不足使论文未能达到"excellent"水平，但整体技术质量仍属良好。
+
+**D.2. How would you rate the novelty of the paper?**
+
+> **Sufficiently novel**
+>
+> 论文的新颖性主要体现在三个方面的有机组合：（1）将振动信号映射为4D点云的数据表示方式是原创的；（2）将DGCNN应用于轴承故障诊断的点云数据处理是新颖的应用；（3）混合度量中心损失结合加权交叉熵的联合损失设计具有针对性。虽然各单元技术均为已有方法，但其在地铁转向架轴承复合故障诊断中的创新性组合和应用具备足够的新颖性。
+
+**D.3. How would you rate the "literary" presentation of the paper?**
+
+> **Mostly accessible**
+>
+> 论文的整体可读性良好。引言部分清晰地阐述了研究背景和动机，方法论部分的叙述层次分明，实验结果的分析条理清楚。主要的可读性障碍在于：（a）部分关键实验参数未明确交代，读者难以完全复现；（b）Figure 1的描述简略，需要读者自行推断数据流细节；（c）缺少Discussion部分导致某些实验现象缺乏解释。
+
+**D.4. How would you rate the appropriateness of this paper for publication in this IEEE Transactions?**
+
+> **Good match**
+>
+> 论文围绕传感器振动信号的智能分析和故障诊断展开，研究内容与IEEE Sensors Journal的范围高度契合。传感器数据的新型表示方法（4D点云）和智能处理框架对传感器领域的读者具有参考价值。虽然论文在深度学习和信号处理的理论贡献上不如专门的机器学习或信号处理期刊要求高，但其应用导向和传感器数据处理的核心主题使其成为该期刊的合适投稿。
