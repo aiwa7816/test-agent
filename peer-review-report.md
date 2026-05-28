@@ -1,0 +1,354 @@
+# 同行评审报告
+
+## Comments to the Author
+
+This paper proposes a graph convolutional network with a novel 4D point-cloud feature representation for few-shot compound fault diagnosis in metro bogie bearings. The idea of mapping raw vibration signals into a four-dimensional point cloud (time, frequency, scale, energy) via multi-scale Mel spectral transformation and processing them with a dynamic graph convolutional network (DGCNN) augmented by Squeeze-and-Excitation (SE) attention is interesting and potentially valuable. However, several critical issues regarding experimental validity, problem formulation, and completeness must be addressed before the paper can be considered for publication. My detailed comments are organized below.
+
+---
+
+### Critical Issues (Must Be Addressed)
+
+**1. Risk of Data Leakage Due to Overlapping Sliding Windows**
+
+This is the most critical concern. In Section IV-A-1, the authors state that "the length of each sample is 2048 points, with a sliding step of 512 points," resulting in 75% overlap between consecutive samples. However, the paper does not clarify whether the training/testing partition was performed **before** the sliding-window segmentation (i.e., at the raw signal level) or **after** it (i.e., at the sample level).
+
+If the split was performed after windowing, adjacent samples sharing up to 75% of their raw signal content could appear in both the training and testing sets, leading to severe data leakage. Under such conditions, the reported accuracy figures (e.g., 93.13% on Task 3) would be significantly inflated and unreliable. This issue undermines the validity of **all** experimental conclusions presented in the paper.
+
+**The authors must:**
+- (a) Explicitly describe the data partitioning strategy and confirm that training and testing samples originate from non-overlapping segments of the raw signal.
+- (b) If the current split does not guarantee leakage-free partitioning, re-run all experiments with a proper signal-level split and report updated results.
+
+**2. Misleading Use of "Few-Shot Learning"**
+
+The term "few-shot" in the title and throughout the paper is misleading. In the machine learning community, few-shot learning has a well-established technical meaning, typically referring to N-way K-shot episodic training protocols (e.g., Prototypical Networks, MAML), where **all** classes have very few labeled samples.
+
+In contrast, the experimental setup in this paper uses 900 training samples per class for 5 base classes (normal + 4 single faults) and only 18 or 36 samples per class for compound faults. This is more accurately characterized as **extreme class imbalance** rather than few-shot learning. The standard batch training procedure used in the paper further deviates from typical few-shot protocols.
+
+**The authors should:**
+- (a) Either reframe the problem as "compound fault diagnosis under extreme class imbalance" or adopt a genuine few-shot learning protocol with episodic training.
+- (b) If retaining the "few-shot" framing, include comparisons with established few-shot learning methods (e.g., Prototypical Networks, Matching Networks, MAML) to justify the claim.
+- (c) Revise the title and abstract to accurately reflect the actual experimental setting.
+
+**3. Absence of Statistical Significance Analysis**
+
+The paper states that "all experimental results reported are the averages obtained from multiple independent repetitions," but fails to report standard deviations, confidence intervals, or the number of repetitions. Given the extreme sample imbalance (900 vs. 18 per class), the training process is likely highly sensitive to random seed selection and sample composition.
+
+**The authors must** report the mean ± standard deviation for all metrics across all tasks and perform statistical significance tests (e.g., paired t-tests or Wilcoxon signed-rank tests) when comparing with baseline methods.
+
+---
+
+### Major Issues
+
+**4. Lack of Theoretical Justification for the 4D Point-Cloud Representation**
+
+The paper repeatedly emphasizes the limitations of 1D/2D representations and the superiority of the proposed 4D point cloud, but provides no rigorous theoretical analysis to support this claim. Section III-C merely describes how the point cloud is constructed without explaining **why** this representation is fundamentally superior to conventional 2D time-frequency representations (e.g., CWT scalograms, STFT spectrograms) in terms of information preservation or feature separability.
+
+Additionally, the "scale" dimension introduced by different analysis window lengths essentially represents a time-frequency resolution trade-off. Treating it as an independent physical dimension parallel to time and frequency may introduce substantial inter-scale redundancy. The authors should:
+- (a) Provide theoretical analysis or information-theoretic metrics (e.g., mutual information) to quantify the additional information captured by the 4D representation compared to 2D alternatives.
+- (b) Discuss the potential impact of inter-scale redundancy and conduct experiments with different scale combinations.
+
+**5. Missing Computational Complexity Analysis**
+
+Transforming 1D signals into 4D point clouds and then processing them with graph convolutions inevitably incurs substantial computational overhead. However, the paper provides no analysis of training time, inference time, model parameter count, or FLOPs. For a method targeting practical metro maintenance scenarios, computational efficiency is a critical consideration.
+
+**The authors should** add a table comparing computational costs (training time, inference time, parameter count) across all methods evaluated.
+
+**6. Incomplete Hyperparameter Specification and Sensitivity Analysis**
+
+Several critical hyperparameters are neither specified nor analyzed:
+- The balancing coefficients λ₁ and λ₂ in the hybrid metric center loss (Eq. 12) are not given specific values.
+- The neighborhood size *k* in k-NN for DGCNN graph construction is not stated.
+- The specific window scales used in the multi-scale Mel transformation and the number of Mel filters *M* are not clearly reported.
+
+**The authors should** (a) report all hyperparameter values used in the experiments and (b) include sensitivity analyses for at least λ₁, λ₂, and *k*.
+
+**7. Absence of Graph-Based or Point-Cloud-Based Comparison Methods**
+
+The five comparison methods (ML-DRL, MixMamba, AET, SAFE-Multilevel, TL-Attention) cover various technical approaches but do not include any graph-network-based or point-cloud-based fault diagnosis method. Since the core innovation lies in the 4D point-cloud + GCN framework, comparing with similar architectural paradigms (e.g., PointNet/PointNet++ applied to vibration data, or other GCN-based diagnosis methods) would more convincingly demonstrate the value of the proposed approach.
+
+---
+
+### Minor Issues
+
+**8. Single Operating Condition Validation**
+
+All experiments are conducted under a single fixed operating condition (motor speed 60 Hz, 10 kN lateral load, 10 kN vertical load). This prevents any assessment of robustness under variable-speed or variable-load conditions, which are common in real metro operations. If the dataset supports it, cross-condition experiments should be included. At minimum, this limitation should be explicitly discussed.
+
+**9. Laboratory Data vs. Real-World Applicability**
+
+While the BJTU-RAO dataset originates from a metro bogie test bench (1:2 scale), there is a significant gap between controlled laboratory conditions and real operating environments involving variable speeds, loads, noise, and track irregularities. The paper should include a candid discussion of this gap and the potential domain-shift challenges.
+
+**10. Lack of a Discussion Section**
+
+The paper transitions directly from experimental results to the conclusion without a dedicated Discussion section. Several experimental observations warrant deeper analysis:
+- Why do OR&RE and OR&C exhibit notably lower recall (83.67% and 88.00%) compared to other compound faults?
+- What physical mechanism underlies the feature masking among OR, RE, and C components?
+- Under which fault patterns does the 4D representation provide the most significant advantage?
+
+A Discussion section addressing these questions would significantly strengthen the paper.
+
+**11. Overly Brief Conclusion**
+
+The conclusion summarizes the method in a single paragraph without discussing limitations or outlining specific future research directions. It should be expanded to include: (a) explicit acknowledgment of limitations (laboratory data, single operating condition, computational overhead); (b) concrete future directions (cross-condition generalization, real-world deployment, online diagnosis).
+
+**12. Insufficient Description of the Overall Framework**
+
+The textual description accompanying Fig. 1 (Section III-A) is too brief. The authors should clearly state the data dimensionality at each processing stage (e.g., input signal length → number of point-cloud points → feature dimensions at each network layer → output classification dimensions) to help readers understand the complete data flow.
+
+---
+
+### Summary
+
+The paper addresses a practically relevant problem and proposes an interesting technical approach. The combination of 4D point-cloud representation with graph convolutional networks for compound fault diagnosis is novel in this application domain. However, the critical concern of potential data leakage due to overlapping sliding windows must be resolved before the experimental conclusions can be trusted. The "few-shot" framing needs to be either corrected or properly justified. Additionally, the paper requires statistical rigor, computational analysis, hyperparameter specification, and a more thorough discussion of limitations.
+
+**Recommendation: Major Revision.** The paper has potential merit but requires substantial revisions to establish the validity and reliability of its experimental conclusions.
+
+---
+---
+
+## 论文信息
+
+- **标题**: A Graph Convolutional Network with Novel High-Dimensional Feature Representation for Few-Shot Compound Fault Diagnosis in Metro Bogie Bearings
+- **期刊**: IEEE Sensors Journal, 2026
+- **作者**: Yunhao Cui, Yingke Du, Zhidan Zhong, Fang Yang, Shiying Liu, Zhihui Zhang, Jian Hou, Li Zhang, Qiang Xu and Zhicheng Cai
+
+---
+
+## 论文概述
+
+本文提出了一种基于图卷积网络（GCN）与新型高维特征表示的小样本复合故障诊断方法，应用于地铁转向架轴承。核心贡献包括：（1）将原始振动信号通过多尺度Mel频谱变换映射为四维（4D）点云表示（时间、频率、尺度、能量）；（2）构建基于动态图卷积网络（DGCNN）和SE注意力模块的特征提取框架；（3）设计混合度量中心损失与加权交叉熵联合损失函数；（4）在地铁转向架试验台数据集上验证方法的有效性。
+
+---
+
+## 一、内容的准确性与前沿性
+
+### 1.1 优点
+
+- **研究问题具有实际工程意义**：地铁转向架轴承的复合故障诊断是一个真实且重要的工程问题。论文正确指出了两个关键挑战——复合故障信号的耦合与遮蔽效应，以及高质量标注数据的稀缺性。
+- **文献综述较为全面**：论文从地铁转向架轴承故障诊断、深度学习复合故障诊断两个方面进行了系统的相关工作梳理，涵盖了信号处理方法（如EMD、CELMDAN）、深度学习方法（如CNN、LSTM、Transformer）以及迁移学习策略，引文较新且具有代表性。
+- **技术方案具有一定创新性**：将振动信号转化为4D点云，并利用图卷积网络进行高维特征学习的思路新颖，跨越了传统1D/2D表示的局限性。
+
+### 1.2 不足与建议
+
+- **4D点云"高维"表示的理论优势论证不足**：论文反复强调低维表示（1D/2D）的不足和高维表示的优越性，但缺乏严格的理论分析来解释为何4D点云表示能够有效克服特征遮蔽问题。具体而言，论文第III-C节仅描述了点云的构建方式，但未从信息论或信号处理理论的角度论证该表示方式相比于传统2D时频图（如CWT、STFT谱图）在信息保留或特征可分离性方面的本质优势。**建议**：增加理论分析或信息量度量实验，定量说明4D点云相比2D时频表示所保留的额外信息量。
+
+- **"尺度"维度的物理意义有待深入阐释**：论文将不同长度的分析窗口作为"尺度"维度引入4D空间，但不同窗口长度本质上代表的是时频分辨率的权衡（时间分辨率vs频率分辨率）。将其作为一个独立的物理维度与时间、频率并列是否合理？不同尺度下的Mel频谱能量点之间存在大量冗余信息，如何确保这种冗余不会对模型造成负面影响？**建议**：增加对尺度维度物理含义的讨论，并通过实验验证不同尺度组合对诊断性能的影响。
+
+- **与现有3D表示方法的对比不够充分**：论文提及Zhang et al. [28]通过多分辨率STFT构建3D张量并使用3DCNN进行特征提取，但仅在文字层面进行定性批评（"缺乏维度间关联"），未在实验中将其作为对比方法。**建议**：将[28]等高维表示方法纳入对比实验，以更有说服力地证明所提方法的优越性。
+
+---
+
+## 二、论证与分析的逻辑性与深度
+
+### 2.1 优点
+
+- **实验设计较为合理**：论文设计了6个难度递增的诊断任务（Task 1-6），通过逐步增加复合故障类别数和训练样本量两个维度来验证模型性能，实验设计思路清晰。
+- **消融实验结构完整**：通过M1-M4四个模型变体，分别验证了Mel滤波器组、SE模块和混合度量损失的贡献，且辅以t-SNE可视化分析增强了说服力。
+- **从多角度分析实验结果**：分别从复合故障类和整体类两个角度进行分析，并进一步通过混淆矩阵和细粒度分类指标（Precision, Recall, F1-Score）深入分析各类故障的诊断表现。
+
+### 2.2 不足与建议
+
+- **对比方法选择的合理性需要讨论**：五个对比方法（ML-DRL、MixMamba、AET、SAFE-Multilevel、TL-Attention）涵盖了不同技术路线，但其中并未包含任何基于点云/图网络的故障诊断方法。既然论文的核心创新在于4D点云+GCN，那么与同类技术路线的方法进行对比将更能体现创新点的价值。**建议**：增加至少一个基于图网络或点云处理的故障诊断方法作为对比基准。
+
+- **统计显著性分析缺失**：论文提到"所有实验结果均为多次独立重复的平均值"，但未报告标准差或置信区间。在小样本条件下（复合故障训练样本仅18或36个），模型的训练过程可能对随机种子高度敏感，仅报告平均值不足以充分证明方法的稳定性。**建议**：报告每个指标的标准差，并进行统计检验（如配对t检验）以验证性能差异的显著性。
+
+- **计算复杂度分析缺失**：将1D信号转化为4D点云，再通过图卷积进行处理，势必显著增加计算开销。论文未对方法的计算复杂度、训练时间、推理时间进行任何讨论或对比。对于面向实际地铁运营场景的诊断系统，计算效率是一个关键考量。**建议**：增加各方法在训练时间、推理时间、模型参数量等方面的定量对比。
+
+- **混合度量中心损失中的超参数影响分析不足**：公式(12)中的平衡系数λ₁和λ₂对模型性能可能有显著影响，但论文既未说明其取值，也未分析其敏感性。**建议**：补充λ₁、λ₂的取值依据及超参数敏感性分析。
+
+- **k-NN中k值的选择未讨论**：DGCNN中的k-NN邻域大小k是影响图结构和模型性能的关键超参数，论文未讨论其选择依据和影响。**建议**：增加k值的敏感性分析实验。
+
+---
+
+## 三、研究方法的适用性与执行力
+
+### 3.1 优点
+
+- **方法论技术路线清晰**：从数据表示（4D点云）→特征提取（DGCNN+SE）→优化目标（联合损失）三个层次逐步构建完整的技术框架，各环节之间的逻辑关系明确。
+- **数据集具有实际背景**：使用来自北京交通大学的BJTU-RAO转向架数据集，该数据集来源于1:2比例的地铁转向架故障模拟实验平台，具有一定的工程实际性。
+- **故障类型设计具有层次性**：涵盖了从单一故障到两重、三重、四重复合故障的完整故障模式谱，共11种健康状态。
+
+### 3.2 不足与建议
+
+- **实验数据仍来自实验室环境，泛化能力存疑**：虽然论文声称关注实际运营场景，但所有数据均来自实验室试验台（1:2比例模型），与实际运行条件（变速、变载、复杂噪声环境）存在显著差距。论文未讨论方法在真实运营数据上的适用性。**建议**：在讨论部分明确指出实验室与实际运营环境的差异，分析潜在的域迁移挑战，或在未来工作中规划真实数据验证。
+
+- **"小样本"设定的合理性需进一步论证**：论文将每类复合故障18或36个训练样本定义为"小样本"条件。然而，基础类（正常+单一故障）每类有900个训练样本，总训练集并非真正意义上的小样本。这更接近于"类不平衡"问题而非严格的"小样本学习"（few-shot learning）范式。在传统的few-shot learning中，通常采用N-way K-shot的episode训练策略，而本文采用的是标准的批量训练。**建议**：更准确地定义问题设定，将其界定为"极端类不平衡下的复合故障诊断"，或与few-shot learning的经典方法（如Prototypical Network、MAML）进行对比。
+
+- **单一工况下的验证局限性**：所有实验均在单一固定工况（电机60Hz、10kN侧向载荷、10kN垂直载荷）下进行，无法验证方法在变工况条件下的鲁棒性。**建议**：如数据集支持，增加变速/变载条件下的实验验证。
+
+- **仅使用单一传感器通道数据**：实验仅使用左轴箱端盖上的CH19通道振动加速度数据，未考虑多传感器信息融合。在实际场景中，多通道数据可能提供互补信息。**建议**：讨论单通道vs多通道方案的权衡，或在未来工作中探讨多通道融合。
+
+---
+
+## 四、论文组织结构的逻辑性
+
+### 4.1 优点
+
+- **整体结构规范清晰**：论文遵循标准的IEEE论文结构（引言→相关工作→方法论→实验→结论），各章节安排合理，过渡自然。
+- **引言部分问题导向明确**：清晰地从实际工程需求出发，逐步分析了三个核心技术挑战，并对应提出了三个主要贡献。
+- **方法论部分层次分明**：从总体框架到各子模块（多尺度Mel频谱变换→点云表示→DGCNN→SE模块→联合损失），叙述逐步深入且逻辑连贯。
+
+### 4.2 不足与建议
+
+- **方法论中数学符号一致性有待改善**：论文中部分数学公式的PDF排版出现了符号错位或难以辨认的情况（这可能是PDF提取的问题，但建议作者在校对时仔细检查所有公式）。
+
+- **Figure 1（总体技术框架图）的描述过于简略**：作为展示整体方法流程的核心图示，论文仅在第III-A节以一段话概述了整体框架，但未对图中各模块之间的数据流维度变化进行详细说明。**建议**：增加对数据在各处理阶段的维度变化的明确说明（如输入信号长度→点云点数→各层特征维度→输出分类维度）。
+
+- **结论部分过于简略**：结论仅用一段话概括了方法和结果，未充分讨论方法的局限性和未来研究方向。**建议**：扩展结论部分，增加以下内容：（a）方法的局限性讨论（如实验室数据 vs 实际运营数据、单一工况、计算开销等）；（b）具体的未来研究方向（如跨工况泛化、在线诊断部署等）。
+
+- **缺少独立的讨论（Discussion）部分**：论文从实验结果直接跳到结论，缺乏对实验结果的深层讨论。例如，为何OR&RE和OR&C的recall显著低于其他复合故障？这反映了什么物理机理？4D点云在何种故障模式下优势最显著？**建议**：在结论前增加讨论部分，对实验结果进行深入物理解释。
+
+---
+
+## 五、综合评价与建议
+
+### 5.1 总体评价
+
+本文针对地铁转向架轴承小样本复合故障诊断这一具有实际意义的问题，提出了一种结合4D点云表示和图卷积网络的新方法。技术路线具有创新性，实验结果表明所提方法在多个诊断任务上优于对比方法。然而，论文在理论分析深度、实验严谨性和方法局限性讨论方面存在不足，需要进行修改和补充。
+
+### 5.2 主要问题总结
+
+| 编号 | 问题 | 严重程度 |
+|------|------|----------|
+| 1 | 4D点云表示的理论优势缺乏严格论证 | 重要 |
+| 2 | 实验缺乏统计显著性分析（标准差、置信区间） | 重要 |
+| 3 | "小样本学习"的问题定义不够严谨，更接近类不平衡问题 | 重要 |
+| 4 | 缺少计算复杂度分析和效率对比 | 重要 |
+| 5 | 关键超参数（λ₁、λ₂、k值）缺乏敏感性分析 | 中等 |
+| 6 | 对比方法中缺少同类技术路线（图网络/点云方法） | 中等 |
+| 7 | 单一工况、单一传感器的实验局限性未充分讨论 | 中等 |
+| 8 | 结论过于简略，缺乏局限性讨论和未来方向 | 次要 |
+| 9 | 缺少独立的Discussion部分 | 次要 |
+
+### 5.3 审稿建议
+
+**建议：大修（Major Revision）**
+
+本文提出的技术方案具有一定创新性和应用价值，但在以下方面需要进行实质性修改：
+
+1. 补充4D点云表示相比传统2D时频表示的理论分析或定量信息度量对比。
+2. 报告所有实验结果的标准差，并进行统计显著性检验。
+3. 重新审视"小样本学习"的问题定义，与经典few-shot learning范式进行更明确的区分或对齐。
+4. 增加计算复杂度分析、超参数敏感性分析。
+5. 补充对方法局限性的充分讨论，增加Discussion部分。
+6. 扩展对比实验，纳入基于图网络或点云处理的故障诊断方法。
+
+如果作者能够充分解决上述问题，本文有望成为轴承复合故障诊断领域的一篇高质量贡献。
+
+---
+
+## 六、结构化评审问卷回答
+
+### 基本技术评价
+
+**1. Is the paper technically sound? If no, why not?**
+
+> **No**
+>
+> 论文提出的技术框架（4D点云表示、DGCNN、SE注意力、混合度量中心损失）在方法论层面是合理的，但其技术可靠性未能被充分建立，主要原因如下：
+>
+> **(a) 滑动窗口重叠导致的数据泄露风险**：论文使用长度为2048点、滑动步长为512点的滑动窗口对原始信号进行切片，相邻样本之间存在75%的重叠。然而，论文未说明训练集与测试集的划分是在滑窗操作之前（信号级别）还是之后（样本级别）进行。如果是在滑窗之后进行随机划分，训练样本和测试样本将共享大量原始信号片段，导致严重的数据泄露，所有报告的性能指标均会被显著高估。在缺乏明确的泄露排除证据之前，实验结论的可信度存疑。
+>
+> **(b) "小样本学习"定义不够严谨**：基础类每类900个训练样本，复合故障类仅18或36个样本。这更接近极端类不平衡的监督学习设定，而非标准的few-shot learning范式。需要进行无泄露验证和跨工况实验，才能充分确立技术结论的可靠性。
+
+**2. Is the coverage of the topic sufficiently comprehensive and balanced?**
+
+> **Important information is missing or superficially treated.**
+>
+> 论文在以下方面的覆盖不够充分：（a）缺少计算复杂度分析和推理效率讨论，这对于面向实际地铁运维的应用至关重要；（b）关键超参数（λ₁、λ₂、k-NN的k值）的取值依据和敏感性分析完全缺失；（c）实验结果未报告标准差或置信区间；（d）对比方法中未包含任何基于图网络或点云的故障诊断方法，无法充分凸显核心创新的价值；（e）结论部分过于简略，未讨论方法局限性和未来方向。此外，论文缺少独立的Discussion部分，对部分实验现象（如OR&RE和OR&C的低recall）未进行深入的物理机理解释。
+
+**3. How would you describe the technical depth of the paper?**
+
+> **Appropriate for the generally knowledgeable individual working in the field or a related field.**
+>
+> 论文涉及的技术内容（Mel频谱变换、DGCNN、SE注意力、度量学习损失函数）对于故障诊断或深度学习领域的从业者来说处于适中的深度。数学推导清晰但不过分复杂，实验方法标准化且易于理解。对于领域内的一般研究者而言，论文的技术深度是适当的。
+
+**4. How would you rate the technical novelty of the paper?**
+
+> **Somewhat novel**
+>
+> 论文的主要新颖性在于将振动信号转化为4D点云表示并应用图卷积网络进行复合故障诊断，这一组合在地铁转向架轴承故障诊断领域是新颖的。然而，各个组成模块（Mel频谱变换、DGCNN/EdgeConv、SE注意力、中心损失）均为已有的成熟技术，论文的创新更多体现在组合方式和应用场景上，而非基础方法论的突破。混合度量中心损失将欧氏距离和余弦相似度结合，虽然有一定创新性，但本质上是对已有度量学习方法的增量改进。
+
+---
+
+### A. 主题适宜性（Suitability of Topic）
+
+**A.1. Is the topic appropriate for publication in these transactions?**
+
+> **Yes**
+>
+> 本文研究的核心是传感器信号（振动加速度信号）的智能处理与故障诊断，涉及传感器数据表示、特征提取和模式识别，完全符合IEEE Sensors Journal的范围。论文使用的BJTU-RAO数据集来源于振动加速度传感器，信号处理和智能诊断是传感器领域的重要应用方向。
+
+**A.2. Is the topic important to colleagues working in the field?**
+
+> **Yes**
+>
+> 地铁转向架轴承的复合故障诊断是城市轨道交通安全运营的关键问题。小样本条件下的精确诊断具有重要的工程实际需求。此外，论文提出的高维数据表示和图卷积特征学习方法对整个机械故障诊断领域的研究者都具有参考价值。
+
+---
+
+### C. 展示质量（Presentation）
+
+**C.1. How would you rate the overall organization of the paper?**
+
+> **Could be improved**
+>
+> 论文整体遵循标准的IEEE论文结构（引言→相关工作→方法→实验→结论），主体框架清晰。但存在以下组织问题：（a）缺少独立的Discussion部分，实验结果分析直接跳至结论；（b）结论部分过于简短，未讨论方法局限性和未来方向；（c）总体技术框架图（Fig. 1）的配套文字描述不够详尽，未明确各处理阶段的数据维度变化。
+
+**C.2. Are the title and abstract satisfactory?**
+
+> **No**
+>
+> 标题和摘要虽然信息量充足，但存在表述过度的问题。（a）标题中"Few-Shot"一词具有误导性：在机器学习领域，few-shot learning有明确的技术含义（N-way K-shot episode训练），而本文的实验设定中基础类每类有900个训练样本，仅复合故障类为18或36个样本，这更接近极端类不平衡的监督学习设定，而非标准的few-shot范式。（b）摘要强调"superior performance...even with limited training samples"，但未提及所有实验仅在单一工况（电机60Hz、10kN载荷）下的实验室试验台数据上进行验证，性能声明缺乏适用范围的限定。建议修改标题和摘要，以更准确地反映实际实验设定和证据范围。
+
+**C.3. Is the length of the paper appropriate?**
+
+> **Yes**
+>
+> 论文正文约11页，对于提出包含数据表示、网络架构和损失函数三个技术贡献的方法论文来说，篇幅基本适当。如果作者按照评审建议增加Discussion部分、计算复杂度分析和超参数敏感性分析，可能需要适度扩展，但仍可控制在合理范围内。
+
+**C.4. Are symbols, terms, and concepts adequately defined?**
+
+> **Not always**
+>
+> 大部分数学符号和概念有明确定义，但存在以下不足：（a）混合度量中心损失（公式12）中的平衡系数λ₁和λ₂未给出具体取值；（b）DGCNN中k-NN的k值未在正文中明确说明；（c）多尺度变换中具体使用了哪些窗口尺度、Mel滤波器组的数量M等关键实验参数未充分交代；（d）加权交叉熵中类别权重的具体计算虽给出了公式，但在不平衡比例极端（900 vs 18）的条件下，权重的数值范围和效果缺乏讨论。
+
+**C.5. How do you rate the English usage?**
+
+> **Satisfactory**
+>
+> 论文的英文写作整体流畅，语法正确，专业术语使用准确。句式结构清晰，逻辑连接词使用恰当。偶尔存在轻微的表述冗余（如多处重复强调"low-dimensional"的不足），但不影响理解。
+
+**C.6. Rate the Bibliography?**
+
+> **Satisfactory**
+>
+> 参考文献共37篇，涵盖了地铁转向架故障诊断、深度学习故障诊断、图卷积网络和度量学习等关键领域。引文时间分布合理，包含了较多近年（2022-2025）的文献，体现了对领域前沿的关注。DGCNN [30]和SE-Net [31]等核心基础方法的引用准确。不过，可以考虑补充少量关于点云深度学习（如PointNet系列在工业领域的应用）和经典few-shot learning方法的参考文献。
+
+---
+
+### D. 总体评价（Overall Rating）
+
+**D.1. How would you rate the technical contents of the paper?**
+
+> **Good**
+>
+> 论文的技术内容总体上是扎实的。4D点云表示的构建方法清晰，DGCNN+SE的网络架构设计合理，混合度量中心损失的提出具有针对性。实验在6个诊断任务上验证了方法的有效性，消融实验和可视化分析增强了论证力。主要扣分点在于：缺乏理论深度（为何4D优于2D的信息论论证）、统计严谨性（无标准差报告）和完整性（无计算复杂度和超参数分析）。这些不足使论文未能达到"excellent"水平，但整体技术质量仍属良好。
+
+**D.2. How would you rate the novelty of the paper?**
+
+> **Sufficiently novel**
+>
+> 论文的新颖性主要体现在三个方面的有机组合：（1）将振动信号映射为4D点云的数据表示方式是原创的；（2）将DGCNN应用于轴承故障诊断的点云数据处理是新颖的应用；（3）混合度量中心损失结合加权交叉熵的联合损失设计具有针对性。虽然各单元技术均为已有方法，但其在地铁转向架轴承复合故障诊断中的创新性组合和应用具备足够的新颖性。
+
+**D.3. How would you rate the "literary" presentation of the paper?**
+
+> **Mostly accessible**
+>
+> 论文的整体可读性良好。引言部分清晰地阐述了研究背景和动机，方法论部分的叙述层次分明，实验结果的分析条理清楚。主要的可读性障碍在于：（a）部分关键实验参数未明确交代，读者难以完全复现；（b）Figure 1的描述简略，需要读者自行推断数据流细节；（c）缺少Discussion部分导致某些实验现象缺乏解释。
+
+**D.4. How would you rate the appropriateness of this paper for publication in this IEEE Transactions?**
+
+> **Good match**
+>
+> 论文围绕传感器振动信号的智能分析和故障诊断展开，研究内容与IEEE Sensors Journal的范围高度契合。传感器数据的新型表示方法（4D点云）和智能处理框架对传感器领域的读者具有参考价值。虽然论文在深度学习和信号处理的理论贡献上不如专门的机器学习或信号处理期刊要求高，但其应用导向和传感器数据处理的核心主题使其成为该期刊的合适投稿。
